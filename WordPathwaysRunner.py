@@ -1,3 +1,5 @@
+import threading
+
 import cv2
 
 from WordGraph import WordGraph
@@ -13,6 +15,8 @@ def main():
     theGraph.build_edges()
 
     theVisualizer = WordGraphVisualizer(theGraph)
+    visualizer_thread = threading.Thread(target=theVisualizer.update_loop)
+    visualizer_thread.start()
 
     while True:
         if theVisualizer.dirty_canvas:
