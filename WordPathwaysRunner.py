@@ -14,12 +14,13 @@ def main():
 
     theVisualizer = WordGraphVisualizer(theGraph)
 
-    print("Showing canvas.")
-    theVisualizer.canvas_lock.acquire()
-    cv2.imshow("Word Graph",theVisualizer.canvas)
-    theVisualizer.canvas_lock.release()
-    cv2.waitKey(0)
-    print("Done.")
+    while True:
+        if theVisualizer.dirty_canvas:
+            theVisualizer.canvas_lock.acquire()
+            cv2.imshow("Word Graph",theVisualizer.canvas)
+            theVisualizer.canvas_lock.release()
+            theVisualizer.dirty_canvas = False
+        cv2.waitKey(10)
 
 
 if __name__ == "__main__":
