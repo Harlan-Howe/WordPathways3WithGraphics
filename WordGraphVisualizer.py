@@ -1,6 +1,7 @@
 import math
 import random
 import threading
+import time
 from typing import List, Tuple
 
 import cv2
@@ -63,7 +64,7 @@ class WordGraphVisualizer:
         self.net_forces:List[List[float]] = [[0, 0] for i in range(len(self.active_words))]
 
         for word_id in range(len(self.active_words)):
-            for edge in self.graph.edges:
+            for edge in self.graph.visible_edges:
                 if edge.u == word_id or edge.v == word_id:
                     F = self.force_from_edge(edge, attraction_factor=0.00075, repulsion_multiplier=-3, forward=True)
                     if edge.u == word_id:
@@ -125,9 +126,11 @@ class WordGraphVisualizer:
 
     def update_loop(self):
         while True:
+            self.graph.search_variables_lock.acquire()
             self.find_net_forces()
             moved = self.update_locations_from_forces()
             if moved:
                 self.draw_graph()
-            cv2.waitKey(1)
+            self.graph.search_variables_lock.release()
+            time.sleep(0.01)
 
