@@ -12,14 +12,16 @@ CANVAS_SIZE = 800
 class WordGraphVisualizer:
 
     def __init__(self, graph: WordGraph):
-        self.graph = WordGraph
+        print("WGV initializing")
+        self.graph = graph
         self.canvas = np.zeros(shape=(CANVAS_SIZE, CANVAS_SIZE, 3), dtype=float)
         self.canvas_lock = threading.Lock()
         self.needs_update: bool = True
         self.word_locs: List[List[float]] = []
 
         for id in range(len(self.graph.vertices)):
-            self.word_locs.append([random.randint(10,CANVAS_SIZE-10), random.randint(10,CANVAS_SIZE-10)])
+            self.word_locs.append([random.randint(10, CANVAS_SIZE-10), random.randint(10, CANVAS_SIZE-10)])
+        print("WGV initialized.")
 
     def draw_self(self):
         self.canvas_lock.acquire()
