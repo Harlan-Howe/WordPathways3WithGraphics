@@ -85,14 +85,14 @@ class WordGraph:
 
     def get_neighbors(self, node: int) -> List[int]:
         neighbors: List[int] = []
-        for edge_id in len(self.edges):
+        for edge_id in range(len(self.edges)):
             edge = self.edges[edge_id]
             if edge.u == node:
                 neighbors.append(edge.v)
-                self.visible_edges.append(edge_id)
+                self.visible_edges.add(edge_id)
             elif edge.v == node:
                 neighbors.append(edge.u)
-                self.visible_edges.append(edge_id)
+                self.visible_edges.add(edge_id)
 
         return neighbors
 
@@ -116,18 +116,26 @@ class WordGraph:
         while len(self.frontier) > 0:
             self.search_variables_lock.acquire()
             current_word_data: FrontierData = self.frontier.pop(0)
+            self.search_variables_lock.release()
             current_word_id = current_word_data.word_id
+            print(f"Popped: {self.vertices[current_word_data.word_id].word}")
             path_to_current_word: List[int] = current_word_data.word_ids_to_here
             if current_word_id == word2_id:
                 path_to_current_word.append(word2_id)
-                self.search_variables_lock.release()
                 return path_to_current_word
+            if current_word_id in self.visited:
+                continue
+            self.search_variables_lock.acquire()
             neighbors: List[int] = self.get_neighbors(current_word_id)
+            self.search_variables_lock.release()
             for neighbor_id in neighbors:
                 incremented_path = copy.deepcopy(path_to_current_word)
                 incremented_path.append(neighbor_id)
-                self.frontier.append(FrontierData(neighbor_id,incremented_path))
-            self.visited.append(current_word_id)
+                self.search_variables_lock.acquire()
+                self.frontier.append(FrontierData(neighbor_id, incremented_path))
+                self.search_variables_lock.release()
+            self.search_variables_lock.acquire()
+            self.visited.add(current_word_id)
             self.search_variables_lock.release()
             time.sleep(1)
         return None
