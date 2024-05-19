@@ -111,7 +111,7 @@ class WordGraph:
         self.search_variables_lock.release()
 
 
-    def find_path(self, word1_id: int, word2_id: int) -> List[int]:
+    def find_path(self, word1_id: int, word2_id: int) -> Optional[List[int]]:
         self.clear_search_variables()
         self.frontier.append(FrontierData(word1_id,[word1_id]))
         while len(self.frontier) > 0:
@@ -134,11 +134,12 @@ class WordGraph:
                 self.vertices[neighbor_id].color = (1.0, 0.2, 0.0)
                 self.visible_edges.add(edge_id)
                 self.search_variables_lock.release()
+                time.sleep(0.125)
             self.search_variables_lock.acquire()
             self.visited.add(self.current_word_id)
             self.vertices[self.current_word_id].color = (0.0, 0.8, 1.0)
             self.search_variables_lock.release()
-            time.sleep(1)
+            time.sleep(0.5)
         return None
 
     def words_for_path(self, id_list: List[int]) -> List[str]:
@@ -151,3 +152,5 @@ class WordGraph:
         result = self.find_path(word1_id, word2_id)
         print(result)
         print(self.words_for_path(result))
+
+
