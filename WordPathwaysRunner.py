@@ -10,11 +10,11 @@ def main():
     global theGraph, theVisualizer
 
     theGraph = WordGraph()
-    # theGraph.load_words_from_file("Four_letter_nodes.txt")
-    theGraph.load_words_from_file("Four_letters_nodes_subset.txt")
+    theGraph.load_words_from_file("Four_letters_nodes.txt")
+    # theGraph.load_words_from_file("Four_letters_nodes_subset.txt")
     theGraph.build_edges()
 
-    word1_id = theGraph.id_for_word("bats")
+    word1_id = theGraph.id_for_word("fled")
     word2_id = theGraph.id_for_word("tint")
 
 
