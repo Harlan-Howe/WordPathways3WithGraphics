@@ -30,6 +30,7 @@ class WordGraphVisualizer:
         self.needs_update: bool = True
         self.word_locs: List[List[float]] = []
         self.dirty_canvas: bool = True
+        self.previously_drawn: List[int] = []
 
         for id in range(len(self.graph.vertices)):
             self.word_locs.append([random.randint(10, CANVAS_SIZE-10), random.randint(10, CANVAS_SIZE-10)])
@@ -57,13 +58,7 @@ class WordGraphVisualizer:
         self.dirty_canvas = True
 
     def find_net_forces(self):
-        self.active_words: List[int] = []
-        self.active_words.extend(self.graph.visited)
-        for fd in self.graph.frontier:
-            if fd.word_id not in self.active_words:
-                self.active_words.append(fd.word_id)
-        if self.graph.current_word_id is not None and self.graph.current_word_id not in self.active_words:
-            self.active_words.append(self.graph.current_word_id)
+
         self.net_forces:List[List[float]] = [[0, 0] for i in range(len(self.graph.vertices))]
 
         for i in range(len(self.active_words)):
@@ -98,6 +93,16 @@ class WordGraphVisualizer:
                 -(CANVAS_SIZE - self.word_locs[word_id][0]) / BORDER_RANGE)
             self.net_forces[word_id][1] -= BORDER_FORCE * math.exp(
                 -(CANVAS_SIZE - self.word_locs[word_id][1]) / BORDER_RANGE)
+
+    def build_active_word_list(self):
+        self.active_words: List[int] = []
+        self.active_words.extend(self.graph.visited)
+        for fd in self.graph.frontier:
+            if fd.word_id not in self.active_words:
+                self.active_words.append(fd.word_id)
+        if self.graph.current_word_id is not None and self.graph.current_word_id not in self.active_words:
+            self.active_words.append(self.graph.current_word_id)
+            self.graph.vertices[self.graph.current_word_id].color = (0, 0, 1.0)
 
     def force_from_edge(self, edge: WordEdge,
                         attraction_factor: float,
@@ -135,6 +140,8 @@ class WordGraphVisualizer:
 
     def update_loop(self):
         while True:
+            self.build_active_word_list()
+            self.put_new_words_near_current()
             self.graph.search_variables_lock.acquire()
             self.find_net_forces()
             moved = self.update_locations_from_forces()
@@ -143,3 +150,12 @@ class WordGraphVisualizer:
             self.graph.search_variables_lock.release()
             time.sleep(0.01)
 
+    def put_new_words_near_current(self):
+        for word_id in self.active_words:
+            if word_id == self.graph.current_word_id:
+                continue
+            if word_id not in self.previously_drawn:
+                angle = random.random()*math.pi
+                self.word_locs[word_id][0] = self.word_locs[self.graph.current_word_id][0]+20*math.cos(angle)
+                self.word_locs[word_id][1] = self.word_locs[self.graph.current_word_id][1] + 20 * math.cos(angle)
+                self.previously_drawn.append(word_id)
