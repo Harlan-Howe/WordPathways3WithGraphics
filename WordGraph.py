@@ -1,6 +1,6 @@
 import copy
 import threading
-from typing import List, Set
+from typing import List, Set, Tuple, Optional
 import time
 
 from FrontierData import FrontierData
@@ -16,7 +16,7 @@ class WordGraph:
         self.visited: Set[int] = set()  # ids of words we'd like colored as "visited"
         self.visible_edges: Set[int] = set()  # ids of edges that we've found by way of get Neighbors
         self.frontier: List[FrontierData] = []  # FrontierData for all words we've seen but yet to visit.
-
+        self.current_word_id: Optional[int] = None
         # threading lock for self.visited/self.visible_edges/self.frontier.
         self.search_variables_lock: threading.Lock = threading.Lock()
 
@@ -83,18 +83,19 @@ class WordGraph:
         # -----------------------------------------
         print("Done Constructing Edges.\n------------------------------------")
 
-    def get_neighbors(self, node: int) -> List[int]:
-        neighbors: List[int] = []
+    def get_neighbors(self, node: int) -> Tuple[List[int], List[int]]:
+        neighbor_word_ids: List[int] = []
+        edge_ids_to_neighbors: List[int] = []
         for edge_id in range(len(self.edges)):
             edge = self.edges[edge_id]
             if edge.u == node:
-                neighbors.append(edge.v)
-                self.visible_edges.add(edge_id)
+                neighbor_word_ids.append(edge.v)
+                edge_ids_to_neighbors.append(edge_id)
             elif edge.v == node:
-                neighbors.append(edge.u)
-                self.visible_edges.add(edge_id)
+                neighbor_word_ids.append(edge.u)
+                edge_ids_to_neighbors.append(edge_id)
 
-        return neighbors
+        return neighbor_word_ids, edge_ids_to_neighbors
 
     def id_for_word(self, word:str) -> int:
         for id in range(len(self.vertices)):
@@ -112,30 +113,30 @@ class WordGraph:
 
     def find_path(self, word1_id: int, word2_id: int) -> List[int]:
         self.clear_search_variables()
-        self.frontier.append(FrontierData(word1_id,[]))
+        self.frontier.append(FrontierData(word1_id,[word1_id]))
         while len(self.frontier) > 0:
             self.search_variables_lock.acquire()
             current_word_data: FrontierData = self.frontier.pop(0)
             self.search_variables_lock.release()
-            current_word_id = current_word_data.word_id
+            self.current_word_id = current_word_data.word_id
             print(f"Popped: {self.vertices[current_word_data.word_id].word}")
             path_to_current_word: List[int] = current_word_data.word_ids_to_here
-            if current_word_id == word2_id:
-                path_to_current_word.append(word2_id)
+            if self.current_word_id == word2_id:
                 return path_to_current_word
-            if current_word_id in self.visited:
+            if self.current_word_id in self.visited:
                 continue
-            self.search_variables_lock.acquire()
-            neighbors: List[int] = self.get_neighbors(current_word_id)
-            self.search_variables_lock.release()
-            for neighbor_id in neighbors:
+            neighbors, edges = self.get_neighbors(self.current_word_id)
+            for neighbor_id, edge_id in zip(neighbors, edges):
                 incremented_path = copy.deepcopy(path_to_current_word)
                 incremented_path.append(neighbor_id)
                 self.search_variables_lock.acquire()
                 self.frontier.append(FrontierData(neighbor_id, incremented_path))
+                self.vertices[neighbor_id].color = (1.0, 0.2, 0.0)
+                self.visible_edges.add(edge_id)
                 self.search_variables_lock.release()
             self.search_variables_lock.acquire()
-            self.visited.add(current_word_id)
+            self.visited.add(self.current_word_id)
+            self.vertices[self.current_word_id].color = (0.0, 0.8, 1.0)
             self.search_variables_lock.release()
             time.sleep(1)
         return None
@@ -145,3 +146,8 @@ class WordGraph:
         for id in id_list:
             result.append(self.vertices[id].word)
         return result
+
+    def execute_search(self, word1_id: int, word2_id: int):
+        result = self.find_path(word1_id, word2_id)
+        print(result)
+        print(self.words_for_path(result))

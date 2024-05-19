@@ -14,9 +14,16 @@ def main():
     theGraph.load_words_from_file("Four_letters_nodes_subset.txt")
     theGraph.build_edges()
 
+    word1_id = theGraph.id_for_word("bats")
+    word2_id = theGraph.id_for_word("tint")
+
+
+
     theVisualizer = WordGraphVisualizer(theGraph)
+    graph_solving_thread = threading.Thread(target=theGraph.execute_search, args=(word1_id, word2_id))
     visualizer_thread = threading.Thread(target=theVisualizer.update_loop)
     visualizer_thread.start()
+    graph_solving_thread.start()
 
     while True:
         if theVisualizer.dirty_canvas:

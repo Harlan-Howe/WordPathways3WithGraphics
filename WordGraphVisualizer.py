@@ -40,18 +40,18 @@ class WordGraphVisualizer:
         self.canvas = np.zeros(shape=(CANVAS_SIZE, CANVAS_SIZE, 3), dtype=float)
 
         for edge in self.graph.visible_edges:
-            u: List[float] = self.word_locs[edge[0]]
-            v: List[float] = self.word_locs[edge[1]]
+            u: List[float] = self.word_locs[self.graph.edges[edge].u]
+            v: List[float] = self.word_locs[self.graph.edges[edge].v]
             cv2.line(img=self.canvas, pt1=(int(u[0]), int(u[1])),
                      pt2=(int(v[0]), int(v[1])), color=(1.0, 1.0, 1.0), thickness=1)
 
-            for frontier_item in self.graph.frontier:
-                word_id = frontier_item[0]
+            for word_id in self.active_words:
                 cv2.putText(img=self.canvas, text=self.graph.vertices[word_id].word, org=(int(self.word_locs[word_id][0] - 10),
                                                                        int(self.word_locs[word_id][1] - 5)),
                             fontFace=cv2.FONT_HERSHEY_PLAIN,
                             fontScale=1,
                             color=self.graph.vertices[word_id].color)
+
 
         self.canvas_lock.release()
         self.dirty_canvas = True
@@ -60,20 +60,29 @@ class WordGraphVisualizer:
         self.active_words: List[int] = []
         self.active_words.extend(self.graph.visited)
         for fd in self.graph.frontier:
-            self.active_words.append(fd.word_id)
-        self.net_forces:List[List[float]] = [[0, 0] for i in range(len(self.active_words))]
+            if fd.word_id not in self.active_words:
+                self.active_words.append(fd.word_id)
+        if self.graph.current_word_id is not None and self.graph.current_word_id not in self.active_words:
+            self.active_words.append(self.graph.current_word_id)
+        self.net_forces:List[List[float]] = [[0, 0] for i in range(len(self.graph.vertices))]
 
-        for word_id in range(len(self.active_words)):
-            for edge in self.graph.visible_edges:
-                if edge.u == word_id or edge.v == word_id:
-                    F = self.force_from_edge(edge, attraction_factor=0.00075, repulsion_multiplier=-3, forward=True)
-                    if edge.u == word_id:
+        for i in range(len(self.active_words)):
+            word_id = self.active_words[i]
+            for edge_id in self.graph.visible_edges:
+                if self.graph.edges[edge_id].u == word_id or self.graph.edges[edge_id].v == word_id:
+                    F = self.force_from_edge(self.graph.edges[edge_id],
+                                             attraction_factor=0.00075,
+                                             repulsion_multiplier=-3,
+                                             forward=True)
+                    if self.graph.edges[edge_id].u == word_id:
                         self.net_forces[word_id][0] += F[0]
                         self.net_forces[word_id][1] += F[1]
                     else:
                         self.net_forces[word_id][0] -= F[0]
                         self.net_forces[word_id][1] -= F[1]
-            for word_id2 in range(word_id):
+
+            for j in range(i):
+                word_id2 = self.active_words[j]
                 dx = self.word_locs[word_id][0] - self.word_locs[word_id2][0]
                 dy = self.word_locs[word_id][1] - self.word_locs[word_id2][1]
                 d_squared = math.pow(dx, 2) + math.pow(dy, 2)
@@ -116,7 +125,7 @@ class WordGraphVisualizer:
 
     def update_locations_from_forces(self) -> bool:
         madeAChange = False
-        for word_id in range(len(self.active_words)):
+        for word_id in range(len(self.graph.vertices)):
             self.word_locs[word_id][0] += self.net_forces[word_id][0]
             self.word_locs[word_id][1] += self.net_forces[word_id][1]
             if (self.net_forces[word_id][0] > min_movement or self.net_forces[word_id][1] > min_movement):
