@@ -7,6 +7,10 @@ from FrontierData import FrontierData
 from WordEdge import WordEdge
 from WordVertex import WordVertex
 
+TAB = "\t"
+POP_DELAY = 0.25
+PUSH_DELAY = 0.1
+
 
 class WordGraph:
 
@@ -119,27 +123,31 @@ class WordGraph:
             current_word_data: FrontierData = self.frontier.pop(0)
             self.search_variables_lock.release()
             self.current_word_id = current_word_data.word_id
-            print(f"Popped: {self.vertices[current_word_data.word_id].word}")
             path_to_current_word: List[int] = current_word_data.word_ids_to_here
-            if self.current_word_id == word2_id:
-                return path_to_current_word
             if self.current_word_id in self.visited:
                 continue
+            print(f"Popped: {'|----'*(len(path_to_current_word)-1)}|{self.vertices[current_word_data.word_id].word}")
+            time.sleep(POP_DELAY)
+            if self.current_word_id == word2_id:
+                return path_to_current_word
+
             neighbors, edges = self.get_neighbors(self.current_word_id)
             for neighbor_id, edge_id in zip(neighbors, edges):
                 incremented_path = copy.deepcopy(path_to_current_word)
                 incremented_path.append(neighbor_id)
                 self.search_variables_lock.acquire()
-                self.frontier.append(FrontierData(neighbor_id, incremented_path))
-                self.vertices[neighbor_id].color = (1.0, 0.2, 0.0)
+                if neighbor_id not in self.visited:
+                    self.frontier.append(FrontierData(neighbor_id, incremented_path))
+                    self.vertices[neighbor_id].color = (1.0, 0.0, 0.8)
+                    print(f"Pushed: {'     '*(len(incremented_path)-1)} {self.vertices[neighbor_id].word}\t\t{len(self.frontier)}+{len(self.visited)}")
                 self.visible_edges.add(edge_id)
                 self.search_variables_lock.release()
-                time.sleep(0.125)
+                time.sleep(PUSH_DELAY)
             self.search_variables_lock.acquire()
             self.visited.add(self.current_word_id)
             self.vertices[self.current_word_id].color = (0.0, 0.8, 1.0)
             self.search_variables_lock.release()
-            time.sleep(0.5)
+
         return None
 
     def words_for_path(self, id_list: List[int]) -> List[str]:
