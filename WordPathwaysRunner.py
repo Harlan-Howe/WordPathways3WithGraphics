@@ -14,8 +14,8 @@ def main():
     # theGraph.load_words_from_file("Four_letters_nodes_subset.txt")
     theGraph.build_edges()
 
-    word1_id = theGraph.id_for_word("fled")
-    word2_id = theGraph.id_for_word("tint")
+    word1_id = theGraph.id_for_word("flea")
+    word2_id = theGraph.id_for_word("tend")
 
 
 
